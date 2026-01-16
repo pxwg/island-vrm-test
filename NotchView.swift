@@ -42,7 +42,7 @@ struct NotchView: View {
                     
                 } else {
                     // === [展开状态] ===
-                    VStack(spacing: 0) {
+                    ZStack(alignment: .top) {
                         Spacer().frame(height: NotchConfig.closedSize.height)
                         
                         HStack(alignment: .top, spacing: 0) {
@@ -98,6 +98,7 @@ struct NotchView: View {
             
             Spacer()
         }
+        .ignoresSafeArea()
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(Color.clear)
     }

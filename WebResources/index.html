@@ -12,19 +12,11 @@
               width: 100vw;
               height: 100vh;
           }
-          canvas {
+      canvas {
               display: block;
               width: 100% !important;
               height: 100% !important;
           }
-            /* 一个浮动在顶部的调试控制台 */
-            #debug-console {
-                position: absolute; top: 0; left: 0; width: 100%;
-                color: lime; background: rgba(0,0,0,0.5);
-                font-family: monospace; font-size: 12px;
-                pointer-events: none; z-index: 999;
-                white-space: pre-wrap; word-wrap: break-word;
-            }
     </style>
     <script type="importmap">
       {
@@ -88,7 +80,7 @@
           camera.position.copy(currentTargetPos);
           camera.lookAt(currentLookAt);
 
-          log("Scene Initialized. Loading VRM...");
+          // log("Scene Initialized. Loading VRM...");
 
           const loader = new GLTFLoader();
           loader.register((parser) => new VRMLoaderPlugin(parser));
@@ -96,7 +88,7 @@
           // 加载模型
           loader.load('./avatar.vrm',
               (gltf) => {
-                    log("✅ VRM Loaded Success!");
+                    // log("✅ VRM Loaded Success!");
                     const vrm = gltf.userData.vrm;
                     vrm.scene.rotation.y = Math.PI;
                     scene.add(vrm.scene);
@@ -107,7 +99,7 @@
                     // 获取 VRM 标准骨骼中的头部位置，如果不存在则默认为 1.5
                     const headNode = vrm.humanoid.getRawBoneNode("head");
                     const headHeight = headNode ? headNode.getWorldPosition(new THREE.Vector3()).y : 1.5;
-                    log("Head Height detected: " + headHeight.toFixed(2));
+                    // log("Head Height detected: " + headHeight.toFixed(2));
 
                     // 重新定义摄像机状态，基于探测到的头部高度
                     // 头部模式：相机稍微高一点点(headHeight + 0.02)，看向头部
@@ -125,11 +117,11 @@
               },
               (progress) => {
                   if (progress.total > 0) {
-                      log("Loading: " + Math.round(progress.loaded / progress.total * 100) + "%");
+                      // log("Loading: " + Math.round(progress.loaded / progress.total * 100) + "%");
                   }
               },
               (error) => {
-                  log("❌ VRM Load Fail: " + error.message);
+                  // log("❌ VRM Load Fail: " + error.message);
                   console.error(error);
               }
           );
