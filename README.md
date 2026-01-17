@@ -20,6 +20,12 @@ https://github.com/user-attachments/assets/fca4ba8c-1538-4334-b531-7d4d15a83065
 - VRM model: [AvatarSample_A](https://hub.vroid.com/en/characters/2843975675147313744/models/5644550979324015604)
 - VRMA motion: [VRM アニメーション 7 種セット（.vrma）](https://booth.pm/en/items/5512385)
 
+## 功能
+
+- 在灵动岛上展示 VRM 模型
+- 鼠标位于灵动岛区域时，展开灵动岛，显示更多动作
+- 头部与眼睛跟随鼠标移动
+
 ## 快速开始
 
 - git clone 本仓库
