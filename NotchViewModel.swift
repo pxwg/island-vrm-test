@@ -23,14 +23,13 @@ class NotchViewModel: ObservableObject {
     }
 
     func hoverStarted() {
-        // 使用 smooth 动画，模仿 iOS 灵动岛的物理阻尼感
-        withAnimation(.interactiveSpring(response: 0.5, dampingFraction: 0.7, blendDuration: 0.2)) {
+        withAnimation(.easeInOut(duration: 0.3)) {
             state = .expanded
         }
     }
 
     func hoverEnded() {
-        withAnimation(.interactiveSpring(response: 0.6, dampingFraction: 0.8, blendDuration: 0.2)) {
+        withAnimation(.easeInOut(duration: 0.3)) {
             state = .closed
         }
     }
