@@ -24,7 +24,7 @@ struct NotchShape: Shape {
         )
         // 左垂直线
         path.addLine(to: CGPoint(x: rect.minX + topCornerRadius, y: rect.maxY - bottomCornerRadius))
-        
+
         // 左下角
         path.addQuadCurve(
             to: CGPoint(x: rect.minX + topCornerRadius + bottomCornerRadius, y: rect.maxY),
@@ -32,7 +32,7 @@ struct NotchShape: Shape {
         )
         // 底部水平线
         path.addLine(to: CGPoint(x: rect.maxX - topCornerRadius - bottomCornerRadius, y: rect.maxY))
-        
+
         // 右下角
         path.addQuadCurve(
             to: CGPoint(x: rect.maxX - topCornerRadius, y: rect.maxY - bottomCornerRadius),
@@ -40,7 +40,7 @@ struct NotchShape: Shape {
         )
         // 右垂直线
         path.addLine(to: CGPoint(x: rect.maxX - topCornerRadius, y: rect.minY + topCornerRadius))
-        
+
         // 右上角
         path.addQuadCurve(
             to: CGPoint(x: rect.maxX, y: rect.minY),
