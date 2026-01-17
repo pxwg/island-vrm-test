@@ -31,4 +31,9 @@ https://github.com/user-attachments/assets/fca4ba8c-1538-4334-b531-7d4d15a83065
 - git clone 本仓库
 - 下载 VRM 模型与动作资源，放置于 `./WebResources/` 目录下，命名为`avatar.vrm` 与 `idle.vrma`
 - 运行 `bash ./build.sh` 构建项目
-- 执行编译后的可执行文件
+- 在`WebResources/`目录下启动一个简单的 HTTP 服务器，例如使用 Python:
+  ```bash
+  cd WebResources
+  python3 -m http.server 5500
+  ````
+- 执行编译后的可执行文件 (暂时需要 `sudo` 权限)
