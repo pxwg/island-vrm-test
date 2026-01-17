@@ -1,5 +1,7 @@
 BoringNotchMVP
 build/
+.build/
+.build_output/
 .nvim/
 .swiftpm/
 .build/
