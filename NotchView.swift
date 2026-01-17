@@ -2,13 +2,12 @@ import SwiftUI
 
 struct NotchView: View {
     @StateObject var vm = NotchViewModel()
-    @Namespace private var animation
+    // 移除 @Namespace，因为 WebView 不再需要 matchedGeometryEffect 跨层级移动
 
     var body: some View {
         ZStack(alignment: .top) {
             VStack(alignment: .center, spacing: 0) {
                 ZStack(alignment: .top) {
-                    // --- 背景层 ---
                     NotchShape(
                         topCornerRadius: vm.currentTopRadius,
                         bottomCornerRadius: vm.currentBottomRadius
@@ -16,9 +15,9 @@ struct NotchView: View {
                     .fill(Color.black)
                     .shadow(color: .black.opacity(0.4), radius: 10, x: 0, y: 5)
 
-                    // --- 内容层 ---
+                    // 使用 if/else 仅切换 UI 控件，避免 WebView 重生
                     if vm.state == .closed {
-                        // === [折叠状态] ===
+                        // === [折叠状态 UI] ===
                         HStack {
                             Spacer()
                             Circle()
@@ -26,29 +25,26 @@ struct NotchView: View {
                                 .frame(width: 6, height: 6)
                                 .opacity(0.8)
                                 .padding(.trailing, 4)
+                                .padding(.top, 13) // 微调垂直对齐
 
-                            VRMWebView(state: .closed)
-                                .frame(width: 40, height: 40)
-                                .matchedGeometryEffect(id: "vrm-canvas", in: animation)
-                            // .mask(Circle())
+                            // [占位符] 为 WebView 留出空间
+                            Spacer().frame(width: 40, height: 40)
                         }
                         .padding(.trailing, 12)
                         .frame(width: vm.currentSize.width, height: vm.currentSize.height)
 
                     } else {
-                        // === [展开状态] ===
+                        // === [展开状态 UI] ===
                         ZStack(alignment: .top) {
-                            // 顶部占位 (避开物理刘海)
                             Spacer().frame(height: NotchConfig.closedSize.height)
 
                             HStack(alignment: .top, spacing: 0) {
-                                // [左侧] 控制面板 (新增按钮样例)
+                                // [左侧] 控制面板 (保持原样)
                                 VStack(alignment: .leading, spacing: 12) {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text("VRM Interactive")
                                             .font(.system(size: 16, weight: .semibold))
                                             .foregroundColor(.white)
-
                                         Text("Status: Online")
                                             .font(.caption)
                                             .foregroundColor(.gray)
@@ -75,7 +71,7 @@ struct NotchView: View {
                                         Button(action: { print("⚙️ Settings Clicked") }) {
                                             Image(systemName: "ellipsis")
                                         }
-                                        .buttonStyle(.plain) // 纯图标样式
+                                        .buttonStyle(.plain)
                                         .foregroundColor(.gray)
                                         .controlSize(.small)
                                     }
@@ -86,22 +82,28 @@ struct NotchView: View {
                                 .padding(.top, 10)
                                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                                // [右侧] VRM 全身渲染
+                                // [右侧] 占位符
                                 VStack {
-                                    VRMWebView(state: .expanded)
-                                        .frame(width: vm.currentSize.width, height: vm.currentSize.height)
-                                        .matchedGeometryEffect(id: "vrm-canvas", in: animation)
-                                        .mask(RoundedRectangle(cornerRadius: 12))
+                                    Spacer().frame(width: 150)
                                 }
-                                .frame(width: 150)
                                 .padding(.trailing, 10)
-                                .padding(.bottom, 0)
                             }
                             .frame(width: vm.currentSize.width)
                         }
                     }
+
+                    // WebView 部分
+                    // 独立于 if/else 之外，通过修改器动态调整位置和大小
+                    VRMWebView(state: vm.state)
+                        .frame(
+                            width: vm.state == .closed ? 40 : 150,
+                            height: vm.state == .closed ? 40 : (NotchConfig.openSize.height - NotchConfig.closedSize.height)
+                        )
+                        .mask(RoundedRectangle(cornerRadius: vm.state == .closed ? 20 : 12))
+                        .padding(.top, vm.state == .closed ? -4 : NotchConfig.closedSize.height)
+                        .padding(.trailing, vm.state == .closed ? 12 : 10)
+                        .frame(maxWidth: vm.currentSize.width, maxHeight: vm.currentSize.height, alignment: .topTrailing)
                 }
-                // 形状与交互定义
                 .clipShape(NotchShape(
                     topCornerRadius: vm.currentTopRadius,
                     bottomCornerRadius: vm.currentBottomRadius
@@ -112,19 +114,13 @@ struct NotchView: View {
                     if isHovering { vm.hoverStarted() }
                     else { vm.hoverEnded() }
                 }
-                .onTapGesture {
-                    print("Background Tapped")
-                }
+                .onTapGesture { print("Background Tapped") }
 
-                // 展开时的下方占位 (保持透明)
-                if vm.state == .expanded {
-                    Spacer()
-                }
+                if vm.state == .expanded { Spacer() }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         .ignoresSafeArea()
-        // 关键：限制外层尺寸且不加背景
         .frame(maxWidth: NotchConfig.windowSize.width, maxHeight: NotchConfig.windowSize.height, alignment: .top)
     }
 }
