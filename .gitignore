@@ -1,2 +1,4 @@
 BoringNotchMVP
 build/
+.nvim/
+.swiftpm/
