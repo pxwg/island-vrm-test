@@ -67,6 +67,12 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+# --- 2.5 编译 Web 前端 (新增) ---
+echo "📦 Building Web Frontend..."
+cd web
+npm run build # 这会根据 vite.config.ts 输出到 ../WebResources
+cd ..
+
 # --- 3. 复制 Web 资源 (关键步骤) ---
 echo "📂 Copying WebResources..."
 if [ -d "WebResources" ]; then
