@@ -4,20 +4,23 @@ import { GLTFLoader } from 'three-stdlib'
 import * as THREE from 'three'
 import { VRMLoaderPlugin, VRM } from '@pixiv/three-vrm'
 import { VRMAnimationLoaderPlugin, createVRMAnimationClip } from '@pixiv/three-vrm-animation'
+import type { AgentPerformance, AgentState } from '../hooks/useBridge'
 
 interface AvatarProps {
   mouseRef: React.MutableRefObject<{ x: number; y: number }>
   mode: 'head' | 'body'
   headNodeRef?: React.MutableRefObject<THREE.Object3D | null>
+  // [新增] 接收状态和指令
+  agentState?: AgentState
+  performance?: AgentPerformance | null
 }
 
-export function Avatar({ mouseRef, mode, headNodeRef }: AvatarProps) {
+export function Avatar({ mouseRef, mode, headNodeRef, performance }: AvatarProps) {
   const { scene } = useThree()
   const vrmRef = useRef<VRM | null>(null)
   
   // === 动画混合器相关 Refs ===
   const mixerRef = useRef<THREE.AnimationMixer | null>(null)
-  // 我们需要两个 Action 来实现“自己过渡给自己”
   const actionsRef = useRef<{
     current: THREE.AnimationAction | null,
     next: THREE.AnimationAction | null
@@ -27,6 +30,10 @@ export function Avatar({ mouseRef, mode, headNodeRef }: AvatarProps) {
   const currentYaw = useRef(0)
   const currentPitch = useRef(0)
   const lookAtTargetRef = useRef<THREE.Object3D>(new THREE.Object3D())
+
+  // [新增] 表情控制 Refs
+  const currentExpressionRef = useRef<string>('neutral')
+  const expressionWeightRef = useRef(0)
 
   // 1. 加载 VRM 模型
   const gltf = useLoader(GLTFLoader, './avatar.vrm', (loader) => {
@@ -50,7 +57,7 @@ export function Avatar({ mouseRef, mode, headNodeRef }: AvatarProps) {
     // (A) 模型初始化
     vrm.scene.rotation.y = Math.PI // 转身面向镜头
     
-    // (B) 保存头部节点 (供外部摄像机使用)
+    // (B) 保存头部节点
     if (headNodeRef) {
         const head = vrm.humanoid.getRawBoneNode('head')
         if (head) headNodeRef.current = head
@@ -62,32 +69,25 @@ export function Avatar({ mouseRef, mode, headNodeRef }: AvatarProps) {
         vrm.lookAt.target = lookAtTargetRef.current
     }
 
-    // (D) 核心修改：设置无缝循环动画
+    // (D) 循环动画设置
     if (animUserData.vrmAnimations && animUserData.vrmAnimations[0]) {
       const mixer = new THREE.AnimationMixer(vrm.scene)
       mixerRef.current = mixer
 
-      // 1. 创建原始 Clip
       const clip1 = createVRMAnimationClip(animUserData.vrmAnimations[0], vrm)
-      // 2. 克隆一份完全一样的 Clip (为了能让动作 Crossfade 到它自己)
       const clip2 = clip1.clone()
 
-      // 3. 创建两个 Action
       const action1 = mixer.clipAction(clip1)
       const action2 = mixer.clipAction(clip2)
 
-      // 4. 关键：设置为 LoopOnce，因为我们要手动控制循环逻辑
-      // 这样可以避免 AnimationMixer 自动跳回 0 帧造成的闪烁
       action1.setLoop(THREE.LoopOnce, 1)
       action1.clampWhenFinished = true
       
       action2.setLoop(THREE.LoopOnce, 1)
       action2.clampWhenFinished = true
 
-      // 5. 启动第一个动作
       action1.play()
 
-      // 6. 保存引用
       actionsRef.current = { current: action1, next: action2 }
     }
 
@@ -96,44 +96,61 @@ export function Avatar({ mouseRef, mode, headNodeRef }: AvatarProps) {
     }
   }, [userData, animUserData, scene, headNodeRef])
 
+  // [新增] 监听 Performance 指令 (设置目标表情)
+  useEffect(() => {
+    if (!performance || !vrmRef.current) return
+    
+    if (performance.face) {
+        currentExpressionRef.current = performance.face
+        // 重置权重以触发重新过渡（可选，视具体需求而定，这里不重置以保持连续性）
+        // expressionWeightRef.current = 0 
+    }
+    
+    // 如果有动作 performance.action，可以在这里处理
+  }, [performance])
+
   // 4. 渲染循环
   useFrame((_, delta) => {
     const vrm = vrmRef.current
     if (!vrm) return
 
-    // === A. 智能动画循环逻辑 ===
+    // === A. 智能动画循环 ===
     if (mixerRef.current && actionsRef.current.current && actionsRef.current.next) {
         mixerRef.current.update(delta)
 
         const activeAction = actionsRef.current.current
         const nextAction = actionsRef.current.next
         const clipDuration = activeAction.getClip().duration
-        
-        // 定义过渡时间 (例如 1.0 秒)
-        // 注意：如果动作很短，过渡时间不能超过动作时长的一半
         const fadeDuration = Math.min(1.0, clipDuration * 0.4)
 
-        // 检测：如果当前动作快播完了，且下一个动作还没开始播
-        // activeAction.time 是当前播放进度
         if (activeAction.time > (clipDuration - fadeDuration) && !nextAction.isRunning()) {
-            
-            // 1. 重置并播放下一个动作
             nextAction.reset()
             nextAction.play()
-
-            // 2. 执行平滑过渡 (Crossfade)
-            // 这会让 activeAction 慢慢变淡，nextAction 慢慢变强
             activeAction.crossFadeTo(nextAction, fadeDuration, true)
-
-            // 3. 交换引用，现在的 next 变成未来的 current
             actionsRef.current.current = nextAction
             actionsRef.current.next = activeAction
         }
     }
+
+    // === B. 表情平滑过渡 ===
+    if (vrm.expressionManager) {
+        const targetWeight = performance?.intensity ?? 1.0
+        // 简单的线性插值 (Lerp)
+        const lerpSpeed = 5.0 * delta
+        expressionWeightRef.current = THREE.MathUtils.lerp(expressionWeightRef.current, targetWeight, lerpSpeed)
+
+        // 设置当前表情权重，其他表情设为0
+        // 注意：VRM 1.0 标准表情预设名通常全小wl
+        const presetName = currentExpressionRef.current
+        
+        // 这一步比较暴力，实际项目中可能需要维护一个表情列表来分别重置
+        vrm.expressionManager.setValue(presetName, expressionWeightRef.current)
+        vrm.expressionManager.update()
+    }
     
     vrm.update(delta)
 
-    // === B. 鼠标跟随逻辑 (保持不变) ===
+    // === C. 鼠标跟随逻辑 ===
     const { x: mouseX, y: mouseY } = mouseRef.current
     const isClosedMode = (mode === 'head')
     
@@ -156,7 +173,6 @@ export function Avatar({ mouseRef, mode, headNodeRef }: AvatarProps) {
     currentYaw.current = THREE.MathUtils.lerp(currentYaw.current, targetYaw, 0.1)
     currentPitch.current = THREE.MathUtils.lerp(currentPitch.current, targetPitch, 0.1)
 
-    // 驱动骨骼旋转
     const head = vrm.humanoid.getRawBoneNode('head')
     const neck = vrm.humanoid.getRawBoneNode('neck')
     const spine = vrm.humanoid.getRawBoneNode('upperChest') || vrm.humanoid.getRawBoneNode('chest')
@@ -174,7 +190,7 @@ export function Avatar({ mouseRef, mode, headNodeRef }: AvatarProps) {
         head.rotation.x += currentPitch.current * 0.5
     }
 
-    // === C. 眼球追踪 (保持不变) ===
+    // === D. 眼球追踪 ===
     if (lookAtTargetRef.current && head) {
         vrm.scene.updateMatrixWorld()
         const headPos = head.getWorldPosition(new THREE.Vector3())

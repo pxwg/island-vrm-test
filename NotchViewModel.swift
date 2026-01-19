@@ -8,12 +8,16 @@ class NotchViewModel: ObservableObject {
 
     @Published var state: State = .closed
 
-    // 当前显示的尺寸
+    // [UI 数据源]
+    @Published var chatContent: String = "你好！我是你的 AI 桌面助手。有什么可以帮你的吗？"
+    @Published var currentTool: String? = nil // 例如 "Weather API"，为 nil 时不显示
+
+    // 当前显示的灵动岛尺寸
     var currentSize: CGSize {
         state == .closed ? NotchConfig.closedSize : NotchConfig.openSize
     }
 
-    // 当前的圆角 (用于传递给 NotchShape)
+    // 当前的圆角 (用于 NotchShape)
     var currentTopRadius: CGFloat {
         state == .closed ? NotchConfig.radius.closed.top : NotchConfig.radius.opened.top
     }

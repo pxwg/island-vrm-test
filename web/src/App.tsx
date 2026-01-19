@@ -10,7 +10,8 @@ import type { ViewportConfig } from './utils/layout'
 import * as THREE from 'three'
 
 function App() {
-  const { mouseRef, cameraMode: nativeMode, windowSize: swiftSize } = useNativeBridge()
+  // [修改] 解构出 agentState 和 performance
+  const { mouseRef, cameraMode: nativeMode, windowSize: swiftSize, agentState, performance } = useNativeBridge()
   
   const IS_DEBUG_MODE = false
   
@@ -40,7 +41,6 @@ function App() {
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
   const orbitRef = useRef<any>(null)
 
-  // [新增] 用于在组件间共享 Head Node
   const headNodeRef = useRef<THREE.Object3D | null>(null)
 
   return (
@@ -68,8 +68,14 @@ function App() {
         <directionalLight position={[1, 1, 1]} intensity={1.2} />
         <ambientLight intensity={0.8} />
 
-        {/* [修改] 传递 headNodeRef */}
-        <Avatar mouseRef={mouseRef} mode={activeMode} headNodeRef={headNodeRef} />
+        {/* [修改] 传递 agentState 和 performance */}
+        <Avatar 
+            mouseRef={mouseRef} 
+            mode={activeMode} 
+            headNodeRef={headNodeRef} 
+            agentState={agentState} 
+            performance={performance}
+        />
         <CameraRig ref={orbitRef} mode={activeMode} debug={IS_DEBUG_MODE} headNodeRef={headNodeRef} />
       </Canvas>
     </div>
