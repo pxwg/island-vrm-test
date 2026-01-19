@@ -1,6 +1,6 @@
 #!/bin/bash
 
-APP_NAME="BoringNotchMVP"
+APP_NAME="IslandVRM"
 BUILD_DIR="./build"
 APP_BUNDLE="$BUILD_DIR/$APP_NAME.app"
 EXECUTABLE="$APP_BUNDLE/Contents/MacOS/$APP_NAME"
@@ -22,37 +22,34 @@ rm -rf "$BUILD_DIR"
 mkdir -p "$APP_BUNDLE/Contents/MacOS"
 mkdir -p "$RESOURCES_DIR"
 
-echo "🚀 Compiling Swift sources..."
+echo "🚀 Building with Swift Package Manager..."
 
-SWIFT_FLAGS="-O"
+# 构造编译参数
+SWIFT_BUILD_FLAGS="-c release --product IslandApp --arch arm64"
+
 if [ "$USE_DEBUG_SERVER" = true ]; then
     echo "🚧 Building with DEBUG_SERVER mode enabled..."
-    SWIFT_FLAGS="$SWIFT_FLAGS -D DEBUG_SERVER"
+    # 通过 -Xswiftc 传递宏定义
+    SWIFT_BUILD_FLAGS="$SWIFT_BUILD_FLAGS -Xswiftc -DDEBUG_SERVER"
 fi
 
-# [修改] 添加 APIModels.swift 和 LocalServer.swift
-swiftc \
-    APIModels.swift \
-    LocalServer.swift \
-    NotchShape.swift \
-    NotchConfig.swift \
-    NotchViewModel.swift \
-    NotchView.swift \
-    NotchWindow.swift \
-    VRMWebView.swift \
-    main.swift \
-    -o "$EXECUTABLE" \
-    -target arm64-apple-macos14.0 \
-    -sdk $(xcrun --show-sdk-path) \
-    $SWIFT_FLAGS
+# [核心修改] 使用 swift build 代替 swiftc
+# 这会自动处理 IslandApp -> IslandCore 的依赖关系
+swift build $SWIFT_BUILD_FLAGS
 
 if [ $? -ne 0 ]; then
-    echo "❌ Compilation failed."
+    echo "❌ SPM Build failed."
     exit 1
 fi
 
+# 获取 SPM 编译出来的二进制文件路径
+BIN_PATH=$(swift build -c release --product IslandApp --show-bin-path --arch arm64)
+SRC_EXECUTABLE="$BIN_PATH/IslandApp"
+
+echo "📦 Copying executable from $SRC_EXECUTABLE..."
+cp "$SRC_EXECUTABLE" "$EXECUTABLE"
+
 echo "📦 Building Web Frontend..."
-# 检查 web 目录是否存在
 if [ -d "web" ]; then
     cd web
     npm run build
@@ -68,6 +65,13 @@ else
     echo "⚠️ Warning: 'WebResources' folder not found! WebView will be empty."
 fi
 
+# 处理 SPM 可能会生成的 Bundle 资源 (如果 Core 里用了 .process)
+# 如果发现 Core 生成了 Bundle，也需要拷贝进去
+if [ -d "$BIN_PATH/IslandCore_IslandCore.bundle" ]; then
+    echo "📂 Copying IslandCore Bundle..."
+    cp -r "$BIN_PATH/IslandCore_IslandCore.bundle" "$RESOURCES_DIR/"
+fi
+
 echo "📝 Creating Info.plist..."
 cat > "$APP_BUNDLE/Contents/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -77,7 +81,7 @@ cat > "$APP_BUNDLE/Contents/Info.plist" <<EOF
     <key>CFBundleExecutable</key>
     <string>$APP_NAME</string>
     <key>CFBundleIdentifier</key>
-    <string>com.yourname.$APP_NAME</string>
+    <string>com.pxwg.$APP_NAME</string>
     <key>CFBundleName</key>
     <string>$APP_NAME</string>
     <key>CFBundlePackageType</key>

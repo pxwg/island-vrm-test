@@ -1,7 +1,20 @@
-// 默认配置 (仅当在浏览器里没有 Swift 信号时作为保底)
+// [修改] 更新默认配置以匹配 Swift 中的 NotchConfig
 export const DEFAULT_CONFIG = {
-  head: { width: 30, height: 30, radius: '8px', name: 'Default Head' },
-  body: { width: 150, height: 158, radius: '12px', name: 'Default Body' },
+  // Head 模式：对应 Swift 中的 NotchConfig.VRM.headSize (30x30)
+  head: {
+    width: 30,
+    height: 30,
+    radius: '8px', // 对应 NotchConfig.VRM.headCornerRadius
+    name: 'Compact Head',
+  },
+
+  // Body 模式：对应 Swift 中的 expandedWebWidth (320) 和 openSize.height (190)
+  body: {
+    width: 320, // 640 * 0.5
+    height: 190, // NotchConfig.openSize.height
+    radius: '12px', // 对应 NotchConfig.VRM.bodyCornerRadius
+    name: 'Expanded Body',
+  },
 };
 
 export interface ViewportConfig {
@@ -12,12 +25,11 @@ export interface ViewportConfig {
 }
 
 export function calculateLayout(
-  // [修改] 第一个参数不再是简单的 mode string，而是具体的配置对象
   config: ViewportConfig,
   windowWidth: number,
   windowHeight: number
 ) {
-  // 缩放比例：让模拟框占据屏幕的 60%
+  // 缩放比例：让模拟框占据屏幕的 60% (保持不变，方便调试查看)
   const scale = Math.min(
     (windowWidth * 0.6) / config.width,
     (windowHeight * 0.6) / config.height
