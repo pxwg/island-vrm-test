@@ -27,7 +27,13 @@ https://github.com/user-attachments/assets/fca4ba8c-1538-4334-b531-7d4d15a83065
 - 头部与眼睛跟随鼠标移动
 - 循环播放 VRMA 动作，即使原本动作不是循环的
 - 允许手动调节模型位置与缩放，保证对于不同模型均能较好展示
-  - 暂时通过修改代码中的常量实现，后续计划添加 UI 界面进行调节
+  - 暂时通过修改代码中的常量实现，后续计划添加 UI 界面进行调节 (WIP)
+  - 目前的使用方式：
+    - `cd` 到`./web` 目录
+    - 修改 `App.tsx` 中的 `const IS_DEBUG_MODE = false` 为 `true`
+    - 运行`npm run dev` 启动开发服务器
+    - 在对应的浏览器窗口中确定模型位置与缩放，并将复制的值更新回`public/camera.json`文件中
+    - 重新编译项目 (记得将 `IS_DEBUG_MODE` 改回 `false`，并`cd`到项目根目录)
 - 简单的 API 调用，用于配置人物的表情、话语等后端 (WIP)
 
 ### API 说明
@@ -80,11 +86,6 @@ https://github.com/user-attachments/assets/fca4ba8c-1538-4334-b531-7d4d15a83065
 ## 快速开始
 
 - git clone 本仓库
-- 下载 VRM 模型与动作资源，放置于 `./WebResources/` 目录下，命名为`avatar.vrm` 与 `idle.vrma`
+- 下载 VRM 模型与动作资源，放置在 `web/public/` 目录下，命名为`avatar.vrm` 和 `idle.vrma`
 - 运行 `bash ./build.sh` 构建项目
-- 在`WebResources/`目录下启动一个简单的 HTTP 服务器，例如使用 Python:
-  ```bash
-  cd WebResources
-  python3 -m http.server 5500
-  ````
 - 执行编译后的可执行文件 (暂时需要 `sudo` 权限)
