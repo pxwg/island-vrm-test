@@ -24,17 +24,21 @@ class SharedWebViewHelper: NSObject, WKNavigationDelegate, WKUIDelegate {
                 webView.load(URLRequest(url: url))
             }
         #else
-            let bundle = Bundle(url: Bundle.main.url(forResource: "island", withExtension: "bundle") ?? URL(fileURLWithPath: "")) ?? Bundle.main
-            if let url = bundle.url(forResource: "index", withExtension: "html", subdirectory: "WebResources") {
+            // [修复] 移除错误的 bundle 查找逻辑，直接使用 Bundle.main
+            // build.sh 将 WebResources 直接拷贝到了 App Bundle 的 Resources 根目录下
+            if let url = Bundle.main.url(forResource: "index", withExtension: "html", subdirectory: "WebResources") {
+                // QKWebView 需要读取同级目录下的 .vrm 和 .vrma 文件，需要允许读取 WebResources 目录
                 webView.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
+            } else {
+                print("❌ Error: Could not find WebResources/index.html in Main Bundle")
             }
         #endif
 
         startMouseTracking()
     }
-    
+
     // [新增] WKNavigationDelegate 方法：页面加载完成后注入配置
-    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+    func webView(_: WKWebView, didFinish _: WKNavigation!) {
         injectCameraConfig()
     }
 
@@ -68,7 +72,7 @@ class SharedWebViewHelper: NSObject, WKNavigationDelegate, WKUIDelegate {
             webView.evaluateJavaScript(js, completionHandler: nil)
         }
     }
-    
+
     // [新增] 初始化时注入相机配置
     func injectCameraConfig() {
         if let jsonString = CameraSettings.shared.toJSON() {
