@@ -4,12 +4,9 @@ import SwiftUI
 public struct SettingsView: View {
     @ObservedObject var settings = CameraSettings.shared
     @State private var selectedTab: SettingsTab = .head
-    @Environment(\.dismiss) private var dismiss
 
-    // [修改] 标记为 public，以便外部可以设置回调
     public var onBodyModeSelected: ((Bool) -> Void)?
 
-    // [新增] 显式的 public 初始化器
     public init(onBodyModeSelected: ((Bool) -> Void)? = nil) {
         self.onBodyModeSelected = onBodyModeSelected
     }
@@ -17,59 +14,36 @@ public struct SettingsView: View {
     enum SettingsTab: String, CaseIterable {
         case head = "Head Mode"
         case body = "Body Mode"
-        case about = "About"
+        // case about = "About"
     }
 
     public var body: some View {
         TabView(selection: $selectedTab) {
-            // Head Mode Tab
             CameraModeSettingsView(
                 mode: "Head",
                 setting: $settings.config.head,
-                onSave: {
-                    settings.save()
-                    SharedWebViewHelper.shared.updateCameraConfig()
-                }
+                // [修改] onSave 只负责由于重置等操作引起的保存，不再负责实时 Slider 的保存
+                onSave: { settings.save() }
             )
-            .tabItem {
-                Label("Head Mode", systemImage: "person.crop.circle")
-            }
+            .tabItem { Label("Head Mode", systemImage: "person.crop.circle") }
             .tag(SettingsTab.head)
 
-            // Body Mode Tab
             CameraModeSettingsView(
                 mode: "Body",
                 setting: $settings.config.body,
-                onSave: {
-                    settings.save()
-                    SharedWebViewHelper.shared.updateCameraConfig()
-                }
+                onSave: { settings.save() }
             )
-            .tabItem {
-                Label("Body Mode", systemImage: "figure.stand")
-            }
+            .tabItem { Label("Body Mode", systemImage: "figure.stand") }
             .tag(SettingsTab.body)
-
-            // About Tab
-            AboutView()
-                .tabItem {
-                    Label("About", systemImage: "info.circle")
-                }
-                .tag(SettingsTab.about)
         }
         .frame(width: 600, height: 450)
         .onChange(of: selectedTab) { _, newValue in
-            // Trigger God Mode when Body tab is selected
             onBodyModeSelected?(newValue == .body)
         }
         .onAppear {
-            // If Body tab is already selected, trigger God Mode
-            if selectedTab == .body {
-                onBodyModeSelected?(true)
-            }
+            if selectedTab == .body { onBodyModeSelected?(true) }
         }
         .onDisappear {
-            // Exit God Mode when settings panel closes
             onBodyModeSelected?(false)
         }
     }
@@ -77,90 +51,30 @@ public struct SettingsView: View {
 
 // MARK: - Camera Mode Settings View
 
-// 保持 internal 即可，因为只在 SettingsView 内部使用
 struct CameraModeSettingsView: View {
     let mode: String
     @Binding var setting: CameraSetting
     let onSave: () -> Void
 
+    // 用于防抖保存到 UserDefaults
     @State private var saveTimer: Timer?
 
     var body: some View {
         Form {
             Section("Camera Position") {
-                HStack {
-                    Text("X:")
-                        .frame(width: 30, alignment: .leading)
-                    Slider(value: $setting.position.x, in: -5 ... 5, step: 0.01)
-                        .onChange(of: setting.position.x) { _, _ in debouncedSave() }
-                    Text(String(format: "%.3f", setting.position.x))
-                        .frame(width: 60, alignment: .trailing)
-                        .monospacedDigit()
-                }
-
-                HStack {
-                    Text("Y:")
-                        .frame(width: 30, alignment: .leading)
-                    Slider(value: $setting.position.y, in: -5 ... 5, step: 0.01)
-                        .onChange(of: setting.position.y) { _, _ in debouncedSave() }
-                    Text(String(format: "%.3f", setting.position.y))
-                        .frame(width: 60, alignment: .trailing)
-                        .monospacedDigit()
-                }
-
-                HStack {
-                    Text("Z:")
-                        .frame(width: 30, alignment: .leading)
-                    Slider(value: $setting.position.z, in: -5 ... 5, step: 0.01)
-                        .onChange(of: setting.position.z) { _, _ in debouncedSave() }
-                    Text(String(format: "%.3f", setting.position.z))
-                        .frame(width: 60, alignment: .trailing)
-                        .monospacedDigit()
-                }
+                SliderRow(label: "X", value: $setting.position.x, range: -5 ... 5, onChange: handleLiveChange)
+                SliderRow(label: "Y", value: $setting.position.y, range: -5 ... 5, onChange: handleLiveChange)
+                SliderRow(label: "Z", value: $setting.position.z, range: -5 ... 5, onChange: handleLiveChange)
             }
 
             Section("Look At Target") {
-                HStack {
-                    Text("X:")
-                        .frame(width: 30, alignment: .leading)
-                    Slider(value: $setting.target.x, in: -5 ... 5, step: 0.01)
-                        .onChange(of: setting.target.x) { _, _ in debouncedSave() }
-                    Text(String(format: "%.3f", setting.target.x))
-                        .frame(width: 60, alignment: .trailing)
-                        .monospacedDigit()
-                }
-
-                HStack {
-                    Text("Y:")
-                        .frame(width: 30, alignment: .leading)
-                    Slider(value: $setting.target.y, in: -5 ... 5, step: 0.01)
-                        .onChange(of: setting.target.y) { _, _ in debouncedSave() }
-                    Text(String(format: "%.3f", setting.target.y))
-                        .frame(width: 60, alignment: .trailing)
-                        .monospacedDigit()
-                }
-
-                HStack {
-                    Text("Z:")
-                        .frame(width: 30, alignment: .leading)
-                    Slider(value: $setting.target.z, in: -5 ... 5, step: 0.01)
-                        .onChange(of: setting.target.z) { _, _ in debouncedSave() }
-                    Text(String(format: "%.3f", setting.target.z))
-                        .frame(width: 60, alignment: .trailing)
-                        .monospacedDigit()
-                }
+                SliderRow(label: "X", value: $setting.target.x, range: -5 ... 5, onChange: handleLiveChange)
+                SliderRow(label: "Y", value: $setting.target.y, range: -5 ... 5, onChange: handleLiveChange)
+                SliderRow(label: "Z", value: $setting.target.z, range: -5 ... 5, onChange: handleLiveChange)
             }
 
             Section("Field of View") {
-                HStack {
-                    Text("FOV:")
-                        .frame(width: 50, alignment: .leading)
-                    Slider(value: $setting.fov, in: 10 ... 120, step: 1)
-                        .onChange(of: setting.fov) { _, _ in debouncedSave() }
-                    Text(String(format: "%.0f°", setting.fov))
-                        .frame(width: 50, alignment: .trailing)
-                        .monospacedDigit()
-                }
+                SliderRow(label: "FOV", value: $setting.fov, range: 10 ... 120, step: 1, format: "%.0f°", onChange: handleLiveChange)
             }
 
             Section {
@@ -168,14 +82,12 @@ struct CameraModeSettingsView: View {
                     Spacer()
                     Button("Reset to Default") {
                         CameraSettings.shared.reset()
+                        // 重置时需要手动触发一次全量更新
+                        SharedWebViewHelper.shared.updateCameraConfig()
                         onSave()
                     }
                     .foregroundColor(.red)
 
-                    Button("Apply Changes") {
-                        onSave()
-                    }
-                    .buttonStyle(.borderedProminent)
                     Spacer()
                 }
             }
@@ -183,64 +95,46 @@ struct CameraModeSettingsView: View {
         .formStyle(.grouped)
     }
 
-    private func debouncedSave() {
+    // [核心优化] 实时处理逻辑
+    private func handleLiveChange() {
+        // 1. 立即：发送给 WebView，实现 0 延迟预览
+        SharedWebViewHelper.shared.updateCameraConfig()
+
+        // 2. 延迟：保存到硬盘 (UserDefaults)，避免频繁写入导致卡顿
         saveTimer?.invalidate()
-        saveTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { _ in
-            onSave()
+        saveTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { _ in
+            print("💾 Auto-saving settings to disk...")
+            onSave() // 这里只调用保存
         }
     }
 }
 
-// MARK: - About View
+// [新增] 提取 Slider 组件，减少重复代码，保证逻辑统一
+struct SliderRow: View {
+    let label: String
+    @Binding var value: Double
+    let range: ClosedRange<Double>
+    var step: Double = 0.01
+    var format: String = "%.3f"
+    var onChange: () -> Void
 
-struct AboutView: View {
     var body: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "figure.stand")
-                .font(.system(size: 60))
-                .foregroundColor(.blue)
-
-            Text("Island VRM")
-                .font(.title)
-                .fontWeight(.bold)
-
-            Text("Version 1.0.0")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-
-            Divider()
-                .padding(.horizontal, 40)
-
-            VStack(alignment: .leading, spacing: 10) {
-                Text("A native macOS application for displaying VRM models in the Dynamic Island.")
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-
-                Text("Features:")
-                    .font(.headline)
-                    .padding(.top)
-
-                VStack(alignment: .leading, spacing: 5) {
-                    Label("Real-time camera configuration", systemImage: "camera.fill")
-                    Label("Native persistence with UserDefaults", systemImage: "externaldrive.fill")
-                    Label("God Mode for distraction-free editing", systemImage: "eye.fill")
-                    Label("Instant visual feedback", systemImage: "bolt.fill")
-                }
-                .padding(.leading, 20)
-            }
-            .frame(maxWidth: 400)
-
-            Spacer()
-
-            Text("© 2024 PXWG. All rights reserved.")
+        HStack {
+            Text("\(label):")
+                .frame(width: 35, alignment: .leading)
                 .font(.caption)
                 .foregroundColor(.secondary)
-        }
-        .padding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-}
 
-#Preview("Settings - Head Mode") {
-    SettingsView()
+            // [修复] 这里之前的 qh 改回了正确的 in
+            Slider(value: $value, in: range)
+                .onChange(of: value) { _, _ in
+                    onChange()
+                }
+
+            Text(String(format: format, value))
+                .frame(width: 55, alignment: .trailing)
+                .monospacedDigit()
+                .font(.caption)
+        }
+    }
 }

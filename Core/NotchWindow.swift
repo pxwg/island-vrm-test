@@ -45,11 +45,11 @@ class NotchWindow: NSPanel {
 
 public class AppDelegate: NSObject, NSApplicationDelegate {
     var window: NotchWindow!
-
-    // [修改] 标记为 public，供 IslandApp 访问
     public var viewModel: NotchViewModel?
 
     public func applicationDidFinishLaunching(_: Notification) {
+        _ = SharedWebViewHelper.shared
+
         window = NotchWindow()
         let vm = NotchViewModel()
         viewModel = vm
