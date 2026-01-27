@@ -73,6 +73,15 @@ public class NotchViewModel: ObservableObject {
     }
 
     private func handleRequest(_ req: APIRequest) {
+        // [新增] 处理全局配置更新 (如 follow_mouse)
+        if let followMouse = req.payload.follow_mouse {
+            DispatchQueue.main.async {
+                CameraSettings.shared.config.followMouse = followMouse
+                CameraSettings.shared.save()
+                SharedWebViewHelper.shared.updateCameraConfig()
+            }
+        }
+
         switch req.type {
         case "assistant_response":
             if let content = req.payload.content {

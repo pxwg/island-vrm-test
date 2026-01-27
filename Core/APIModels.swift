@@ -15,6 +15,8 @@ struct APIPayload: Codable {
 
     // agent_state
     let state: String?
+
+    let follow_mouse: Bool?
 }
 
 struct ToolInfo: Codable {

@@ -4,7 +4,7 @@ import { GLTFLoader } from 'three-stdlib'
 import * as THREE from 'three'
 import { VRMLoaderPlugin, VRM } from '@pixiv/three-vrm'
 import { VRMAnimationLoaderPlugin, createVRMAnimationClip } from '@pixiv/three-vrm-animation'
-import type { AgentPerformance, AgentState } from '../hooks/useBridge'
+import type { AgentPerformance, AgentState, CameraConfig } from '../hooks/useBridge'
 
 interface AvatarProps {
   mouseRef: React.MutableRefObject<{ x: number; y: number }>
@@ -12,9 +12,11 @@ interface AvatarProps {
   headNodeRef?: React.MutableRefObject<THREE.Object3D | null>
   agentState?: AgentState
   performance?: AgentPerformance | null
+  // [新增]
+  cameraConfig?: CameraConfig | null
 }
 
-export function Avatar({ mouseRef, mode, headNodeRef, performance }: AvatarProps) {
+export function Avatar({ mouseRef, mode, headNodeRef, performance, cameraConfig }: AvatarProps) {
   const { scene } = useThree()
   const vrmRef = useRef<VRM | null>(null)
   
@@ -183,15 +185,22 @@ export function Avatar({ mouseRef, mode, headNodeRef, performance }: AvatarProps
     
     vrm.update(delta)
 
-    // === C. 鼠标跟随逻辑 (保持不变) ===
-    const { x: mouseX, y: mouseY } = mouseRef.current
+    // === C. 鼠标跟随逻辑 (新增开关控制) ===
+    // [新增] 检查 cameraConfig.followMouse，默认为 false
+    const shouldFollow = cameraConfig?.followMouse ?? false
+    
+    const { x: mouseX, y: mouseY } = shouldFollow ? mouseRef.current : { x: 0, y: 0 }
+    
     const isClosedMode = (mode === 'head')
     const trackingIntensity = isClosedMode ? 0.25 : 1.0
     const sensitivity = 0.002
     const maxYaw = THREE.MathUtils.degToRad(50)
     const maxPitch = THREE.MathUtils.degToRad(30)
+    
+    // 如果不跟随，targetYaw/Pitch 默认为 0，人物会看向正前方
     const targetYaw = THREE.MathUtils.clamp(mouseX * sensitivity * trackingIntensity, -maxYaw, maxYaw)
     const targetPitch = THREE.MathUtils.clamp(mouseY * sensitivity * trackingIntensity, -maxPitch, maxPitch)
+    
     currentYaw.current = THREE.MathUtils.lerp(currentYaw.current, targetYaw, 0.1)
     currentPitch.current = THREE.MathUtils.lerp(currentPitch.current, targetPitch, 0.1)
 

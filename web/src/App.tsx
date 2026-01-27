@@ -75,6 +75,7 @@ function App() {
             headNodeRef={headNodeRef} 
             agentState={agentState} 
             performance={performance}
+            cameraConfig={cameraConfig}
         />
         <CameraRig 
             ref={orbitRef} 

@@ -32,6 +32,8 @@ export interface CameraConfig {
   head: CameraSetting;
   body: CameraSetting;
   lerpSpeed: number;
+  // [新增] 鼠标跟随配置
+  followMouse: boolean;
 }
 
 interface CameraSetting {

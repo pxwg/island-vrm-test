@@ -3,7 +3,7 @@ import SwiftUI
 // [修改] 标记为 public
 public struct SettingsView: View {
     @ObservedObject var settings = CameraSettings.shared
-    @State private var selectedTab: SettingsTab = .head
+    @State private var selectedTab: SettingsTab = .general
 
     public var onBodyModeSelected: ((Bool) -> Void)?
 
@@ -12,13 +12,18 @@ public struct SettingsView: View {
     }
 
     enum SettingsTab: String, CaseIterable {
+        case general = "General"
         case head = "Head Mode"
         case body = "Body Mode"
-        // case about = "About"
     }
 
     public var body: some View {
         TabView(selection: $selectedTab) {
+            // [新增] General Tab
+            GeneralSettingsView(settings: settings)
+                .tabItem { Label("General", systemImage: "gearshape") }
+                .tag(SettingsTab.general)
+
             CameraModeSettingsView(
                 mode: "Head",
                 setting: $settings.config.head,
@@ -46,6 +51,28 @@ public struct SettingsView: View {
         .onDisappear {
             onBodyModeSelected?(false)
         }
+    }
+}
+
+// [新增] 通用设置视图
+struct GeneralSettingsView: View {
+    @ObservedObject var settings: CameraSettings
+
+    var body: some View {
+        Form {
+            Section("Behavior") {
+                Toggle("Look at Mouse Cursor", isOn: $settings.config.followMouse)
+                    .onChange(of: settings.config.followMouse) { _, _ in
+                        // 实时更新并保存
+                        settings.save()
+                        SharedWebViewHelper.shared.updateCameraConfig()
+                    }
+                Text("When disabled, the character will look straight forward regardless of mouse position.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .formStyle(.grouped)
     }
 }
 
