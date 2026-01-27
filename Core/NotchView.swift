@@ -102,9 +102,9 @@ struct CompactView: View {
         HStack(spacing: 0) {
             HStack(spacing: 6) {
                 // TODO: 与传入的状态联动
-                Image(systemName: "cloud.fill")
-                    .font(.system(size: 12))
-                    .foregroundColor(.white.opacity(0.6))
+                // Image(systemName: "cloud.fill")
+                //     .font(.system(size: 12))
+                //     .foregroundColor(.white.opacity(0.6))
                 // Text("24°")
                 //     .font(.system(size: 12, weight: .medium))
                 //     .foregroundColor(.white)
